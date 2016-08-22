@@ -53,4 +53,4 @@ wanted.net. IN NS colt.wanted.net.
 ; nexus 7 d8:50:e6:73:56:41
 ; motorola e8:91:20:0e:be:ab
 ; little chromebook wlan0 74:C6:3B:3B:DF:B1
-; big chromebook 
+; big chromebook dc:a9:71:df:fb:bf
