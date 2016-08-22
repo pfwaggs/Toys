@@ -1,0 +1,56 @@
+
+$TTL 3h
+
+; we start our soa file here
+wanted.net. IN SOA colt.wanted.net. sheriff.wanted.net. (
+  1 ; serial
+ 3h ; refresh 3 hours
+ 1h ; retry 1 hour
+ 1w ; expire after 1 week
+ 1h ) ; negative cache time
+
+wanted.net. IN NS colt.wanted.net.
+
+; computer room 192.168.0
+; mac mini
+; time machine
+; main eth0 08:62:66:c7:a8:cb
+; raspberry pi (dns) colt?
+; raspberry pi 2 (repeat as needed)
+; raspberry pi 3 (repeat as needed)
+; hp printer b/w (tombstone)
+; scanner?
+; brother label printer.
+; computer room a/v stuff
+; computer room optical player
+; computer room tv
+; computer room chromecast video
+; computer room chromecast audio
+; computer room stereo
+
+; bedroom 1 + bath 192.168.1
+; chromecast audio
+
+; bedroom 2 + bath 192.168.2
+; chromecast audio
+
+; living room 192.168.3
+; express 2
+; living room a/v
+; living room optical player
+; living room tv
+; living room chromecast video
+; living room chromecast audio
+; living room stereo
+; living room ps3
+; living room ps4
+
+; mobile 192.168.4
+; makbook air
+; iphone 40:33:1a:dc:92:64
+; ipad 2 90:8d:6c:40:51:e0
+; ipad mini 4
+; nexus 7 d8:50:e6:73:56:41
+; motorola e8:91:20:0e:be:ab
+; little chromebook wlan0 74:C6:3B:3B:DF:B1
+; big chromebook 
