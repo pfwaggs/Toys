@@ -1,2 +1,5 @@
 *.json
 *.txt
+*.dump
+*.tab
+testing/
