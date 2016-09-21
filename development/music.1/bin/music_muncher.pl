@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-# vim: set ai si sw=4 sts=4 et : *fdc=4 fmr=AAA,ZZZ fdm=marker*/
+# vim: ai si sw=4 sts=4 et fdc=4 fmr=AAA,ZZZ fdm=marker
 
 # normal junk #AAA
 use warnings;
