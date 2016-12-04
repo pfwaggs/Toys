@@ -19,34 +19,12 @@ use Music;
 #ZZZ
 
 # main #AAA
-my $master_file = 'master.tab';
-my $slave_file = 'slave.tab';
 
-my %opts = (
-    limit       => 0,
-    flip        => 0,
-    verbose     => 0,
-    debug       => 0,
-    dump        => 0,
-    bad         => 0,
-    check       => [],
-);
-#    master_file => $master_file,
-#    master_conf => $master_conf,
-#    slave_file  => $slave_file
-#    slave_conf  => $slave_conf,
-my @opts = ( 'flip|hash_map', 'verbose+', 'limit=i', 'debug=i', 'check=s@', 'dump', 'bad',);
-
-GetOptions( \%opts, @opts, 'slave=s'  => \$slave_file, 'master=s' => \$master_file,) or die "options are not correct\n";
-my $slave_conf = ($slave_file =~ s/tab/conf/r);
-my $master_conf = ($master_file =~ s/tab/conf/r);
-
-if ($opts{dump}) {
-    p %opts;
-    warn 'slave_file is '.($slave_file//'empty')."\n";
-    warn 'master_file is '.($master_file//'empty')."\n";
+Music::ProcessCli(@ARGV);
+if ($Music::Options{dump}) {
+    p %Music::Options;
+    die('finished', "\n");
 }
-
 
 ## %structure #AAA
 #my %structure = (
@@ -68,61 +46,74 @@ if ($opts{dump}) {
 #);
 ##ZZZ
 
-my %structure;
-my $in = JSON->new->decode(path('slave.conf')->slurp);
-$structure{slave} = {$in->%*};
-$in = JSON->new->decode(path('master.conf')->slurp);
-$structure{master} = {$in->%*};
+#my $master_file = $Music::Options{master}//'master.tab';
+my %master_data = Music::LoadData('master');
+p %master_data;
+my %slave_data = Music::LoadData('slave');
+p %slave_data;
 
-my %disks = (master => [], slave => []);
-my %master_data;
-%master_data = Music::load_Master($master_file,%opts);
-die "error reading $master_file\n" if ! %master_data;
-
-my @master_keys = grep {$_ ne 'fields'} keys %master_data;
-my %master_stripped = map {$master_data{$_}{cd}{stripped} => $_} @master_keys;
-warn "we have ".scalar @master_keys." disks in master\n";
-p %master_stripped;
-
-my %slave_data = Music::load_Slave($slave_file, %opts);
-die "error reading $slave_file\n" if ! %slave_data;
-
-my @slave_keys = grep {$_ ne 'fields'} keys %slave_data;
-my %slave_stripped = map {$slave_data{$_}{cd}{stripped} => $_} @slave_keys;
-warn "we have ".scalar @slave_keys." disks in slave\n";
-p %slave_stripped;
-
-
-my %problems;
-my %assigned;
-my $check = 1;
-for my $stripped_slave (keys %slave_stripped) {
-    my $slave_key = $slave_stripped{$stripped_slave};
-    printf STDERR "checking %4d %s\n", $check++, $slave_data{$slave_key}{cd}{ALBUM};
-
-    my $saved = 0;
-    my $master_key;
-    for my $stripped_master (keys %master_stripped) {
-        my $score = Music::word_Score($stripped_slave, $stripped_master);
-        say join ("\t", $stripped_slave, $stripped_master, $score);
-        say '';
-    }
-        
-#        if ($stripped_master =~ /$stripped_slave/ || $stripped_slave =~ /$stripped_master/) {
-#            $master_key = $master_stripped{$stripped_master};
-##               warn "stripped_master ".$stripped_master."\n";
-#            push @{$assigned{$slave_data{$slave_key}{cd}{ALBUM}}}, $master_data{$master_key}{cd}{USER_NUMBER};
-#            $saved++;
-#        }
+#if (keys %master_data) {
+#    my @master_keys = grep {$_ ne 'fields'} keys %master_data;
+#    my %master_stripped = map {$master_data{$_}{cd}{stripped} => $_} @master_keys;
+#    warn "we have ".scalar @master_keys." disks in master\n";
+#    my %tmp_data = $master_data{$master_keys[0]}->%*;
+#    p %tmp_data;
+##   p %master_stripped;
+#} else {
+#    die "error reading $master_file\n";
+#}
+#
+#my $slave_file = $opts{slave}//'slave.tab';
+#my %slave_data = Music::LoadSlaveData($slave_file, %opts);
+#if (keys %slave_data) {
+#    my @slave_keys = grep {$_ ne 'fields'} keys %slave_data;
+#    my %slave_stripped = map {$slave_data{$_}{cd}{stripped} => $_} @slave_keys;
+#    warn "we have ".scalar @slave_keys." disks in slave\n";
+#    %tmp_data = $slave_data{$slave_keys[0]}->%*;
+#    p %tmp_data;
+##   p %slave_stripped;
+#} else {
+#    die "error reading $slave_file\n"
+#}
+#
+##for my $base (qw/master slave/) {
+##    $init_files{file}{$base} = $opts{$base}//"$base.tab";
+###   $init_files{conf}{$base} = ($init_files{file}{$base} =~ s/tab/conf/r);
+##    $init_files{data}{$base} = {$dispatch{$base}($init_files{file}{$base})};
+##    $init_files{keys}{$base} = [grep {$_ ne 'fields'} keys $init_files{data}{$base}];
+##    $init_files{stripped}{$base} = {map {$init_files{data}{$base}{$_}{cd}{stripped} => $_} $init_files{keys}{$base};
+##}
+#
+#my %problems;
+#my %assigned;
+#my $check = 1;
+#for my $stripped_slave (keys %slave_stripped) {
+#    my $slave_key = $slave_stripped{$stripped_slave};
+#    printf STDERR "checking %4d %s\n", $check++, $slave_data{$slave_key}{cd}{ALBUM};
+#
+#    my $saved = 0;
+#    my $master_key;
+#    for my $stripped_master (keys %master_stripped) {
+#        my $score = Music::WordScore($stripped_slave, $stripped_master);
+#        say join ("\t", $stripped_slave, $stripped_master, $score);
+#        say '';
 #    }
-#    if (0 == $saved) {
-#        $problems{$slave_key}{slave} = {$slave_data{$slave_key}{cd}->%*};
-#        $problems{$slave_key}{master} = {$master_data{$master_key}{cd}->%*} if $master_key;
-#    }
-}
-__END__
-path('problems.json')->spew(JSON->new->utf8->pretty->encode(\%problems));
-path('assigned.json')->spew(JSON->new->utf8->pretty->encode(\%assigned));
+#        
+##        if ($stripped_master =~ /$stripped_slave/ || $stripped_slave =~ /$stripped_master/) {
+##            $master_key = $master_stripped{$stripped_master};
+###               warn "stripped_master ".$stripped_master."\n";
+##            push @{$assigned{$slave_data{$slave_key}{cd}{ALBUM}}}, $master_data{$master_key}{cd}{USER_NUMBER};
+##            $saved++;
+##        }
+##    }
+##    if (0 == $saved) {
+##        $problems{$slave_key}{slave} = {$slave_data{$slave_key}{cd}->%*};
+##        $problems{$slave_key}{master} = {$master_data{$master_key}{cd}->%*} if $master_key;
+##    }
+#}
+#__END__
+#path('problems.json')->spew(JSON->new->utf8->pretty->encode(\%problems));
+#path('assigned.json')->spew(JSON->new->utf8->pretty->encode(\%assigned));
 
 #ZZZ
 
