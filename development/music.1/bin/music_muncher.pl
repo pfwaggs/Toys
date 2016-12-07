@@ -21,10 +21,6 @@ use Music;
 # main #AAA
 
 Music::ProcessCli(@ARGV);
-if ($Music::Options{dump}) {
-    p %Music::Options;
-    die('finished', "\n");
-}
 
 ## %structure #AAA
 #my %structure = (
@@ -47,10 +43,11 @@ if ($Music::Options{dump}) {
 ##ZZZ
 
 #my $master_file = $Music::Options{master}//'master.tab';
-my %master_data = Music::LoadData('master');
-p %master_data;
-my %slave_data = Music::LoadData('slave');
-p %slave_data;
+if (defined $Music::Options{testing}) {
+    my %tmp_data = Music::LoadData();
+    Music::DumpWork(\%tmp_data) if $Music::Options{debug};
+}
+die 'done with testing', "\n" if $Music::Options{debug} & 1;
 
 #if (keys %master_data) {
 #    my @master_keys = grep {$_ ne 'fields'} keys %master_data;

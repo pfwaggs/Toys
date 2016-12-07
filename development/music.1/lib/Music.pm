@@ -35,15 +35,13 @@ our %Options;
 
 sub _CheckDisplay ($db_h) { #AAA
     my %read = $db_h->%*;
-    for ($Options{check}->@*) {
+    warn "skipping $_", "\n" for grep {! exists $read{$_}} keys %read;
+    for (grep {exists $read{$_}} $Options{keys}->@*) {
+        my %th = $read{$_}->%*;
         my ($key, $hash) = _GenHashMap($_);
-        warn $key, "\n";
-        if (exists $read{$key}) {
-            my %th = ($key => {$read{$key}->%*});
-            p %th;
-        } else {
-            warn "skipping $_ ($key/$hash)", "\n";
-        }
+        ($key, $hash) = ($hash, $key) if $Options{flip};
+        @th{qw/key hash/} = ($key, $hash);
+        p %th;
     }
 } #ZZZ
 
@@ -60,7 +58,6 @@ sub _GenHashMap ($str) { #AAA
     my $key = join('', sort split(//, _ModSpecials($str)));
 #   my $str = JSON->new->utf8->encode(\@substr); # in case we want to use json later.
     my %rtn = ($key => Digest::MD5->new->add($key)->hexdigest);
-    %rtn = reverse %rtn if $Options{flip};
     return wantarray ? %rtn : \%rtn;
 } #ZZZ
 
@@ -167,7 +164,7 @@ sub Stripper ($str) { #AAA
 #    return wantarray ? %slave : \%slave;
 #} #ZZZ
 
-sub LoadData ($type) { #AAA
+sub LoadData ($type = $Options{testing}) { #AAA
     my @lines = $Options{$type}{file}->lines_utf8({chomp=>1});
     my %structure = JSON->new->utf8->decode($Options{$type}{conf}->slurp)->%*;
 
@@ -177,11 +174,11 @@ sub LoadData ($type) { #AAA
 
     my %key = $structure{key}->%*;
     my %hash = $structure{hash}->%*;
-    my @check = $Options{check}->@*;
     printf STDERR "loading $Options{$type}{file} ...";
 
     my %tmp;
     for my $line (@lines) {
+        last if $Options{limit} and $Options{limit} == keys %rtn;
         @tmp{@fields} = split /\t/, $line;
         my ($album, @removed) = Stripper($tmp{$key{cd}});
         my ($album_key, $key_pair) = _GenHashMap($album);
@@ -193,14 +190,9 @@ sub LoadData ($type) { #AAA
             $rtn{$album_key}{cd}{stripped} = $album;
             $rtn{$album_key}{cd}{removed} = @removed ? [@removed] : [];
         }
-        last if $Options{limit} and $Options{limit} == keys %rtn;
     }
     warn 'done', "\n";
-    return undef unless keys %rtn;
-    _CheckDisplay(\%rtn) if $Options{check};
-    my $dump_file = path($Options{$type}{file} =~ s/.tab/.dump/r);
-    $dump_file->spew(JSON->new->utf8->pretty->encode(\%rtn)) if $Options{debug} & 1<<0;
-    return wantarray ? %rtn : \%rtn;
+    return keys %rtn ? (wantarray ? %rtn : \%rtn) : undef;
 } #ZZZ
 
 sub ProcessCli (@input) { #AAA
@@ -211,17 +203,25 @@ sub ProcessCli (@input) { #AAA
 	debug   => 0,
 	dump    => 0,
 	bad     => 0,
+        quit    => 0,
+        testing => undef,
 	slave   => {file => 'slave.tab'},
 	master  => {file => 'master.tab'},
-	check   => [],
+	keys    => [],
     );
 
-    my @options = ( 'flip|hash_map', 'verbose+', 'limit=i', 'debug=i', 'check=s@', 'dump', 'bad',
+    my @options = ( 'flip|hash_map', 'verbose+', 'limit=i',
+        'keys=s', 'dump', 'bad', 'testing=s',
         'slave=s'  => sub {$Options{slave}{file}  = $_[1]},
         'master=s' => sub {$Options{master}{file} = $_[1]},
+        'debug=i' => sub {$Options{debug} ^= 1<<$_[1]},
+        'quit' => sub {$Options{debug} ^= 1},
     );
     GetOptionsFromArray(\@input, \%Options, @options) or die 'illegal options', "\n";
-
+    if ($Options{debug} & 1<<1) {
+        p %Options;
+        die 'early out', "\n" if $Options{debug} & 1;
+    }
     for (qw/slave master/) {
         $Options{$_}{file} = readlink $Options{$_}{file} if -l $Options{$_}{file};
         if (-s $Options{$_}{file}) {
@@ -238,6 +238,17 @@ sub ProcessCli (@input) { #AAA
     }
     
     return wantarray ? @input : \@input;
+} #ZZZ
+
+sub DumpWork ($ref_h) { #AAA
+    my $type = $Options{testing};
+    if ($Options{debug} & 1<<2) { # hmmm.  maybe print it out instead
+        _CheckDisplay($ref_h) if $Options{keys}->@*;
+    }
+    if ($Options{debug} & 1<<3) {
+        my $dump_file = path($Options{$type}{file} =~ s/.tab/.dump/r);
+        $dump_file->spew(JSON->new->utf8->pretty->encode($ref_h));
+    }
 } #ZZZ
 
 1;
