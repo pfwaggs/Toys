@@ -6,7 +6,7 @@ package Music;
 use warnings;
 use strict;
 use v5.22;
-use experimental qw(smartmatch signatures postderef);
+use experimental qw(smartmatch signatures postderef autoderef);
 
 use Getopt::Long qw(GetOptionsFromArray :config pass_through no_ignore_case auto_help);
 #my %opts;
@@ -24,12 +24,20 @@ use Data::Printer; # use_prototypes=>0;
 use Text::Fuzzy;
 
 our %Options;
+our %Debug;
+my @stupid_useless_list = qw/scheme keys all write/;
+while (my ($c, $n) = each @stupid_useless_list) {
+    $Debug{$n} = 1<<$c;
+};
 
-#BEGIN {
-#    use experimental qw(smartmatch);
-#    unshift @INC, grep {! ($_ ~~ @INC)} map {"$_"} grep {path($_)->is_dir} map {path("$_/lib")->realpath} '.', '..';
-#}
-#use Menu;
+sub _errors ($key, $val) {
+    my $next = keys %Debug;
+    if (exists $Debug{$val}) {
+        $Options{$key} ^= $Debug{$val};
+    } else {
+        $Options{$key} ^= $Debug{$val} = 1<<$next;
+    }
+} #ZZZ
 
 #ZZZ
 
@@ -165,21 +173,33 @@ sub Stripper ($str) { #AAA
 #} #ZZZ
 
 sub LoadData ($type = $Options{testing}) { #AAA
-    my @lines = $Options{$type}{file}->lines_utf8({chomp=>1});
+    my ( undef, $name) = split /:+/, (caller(0))[3];
+    warn 'loading '.$type, "\n";
     my %structure = JSON->new->utf8->decode($Options{$type}{conf}->slurp)->%*;
+    my @lines = $Options{$type}{file}->lines_utf8({chomp=>1});
 
+    printf STDERR "loading $Options{$type}{file} ...";
+    my %key = $structure{key}->%*;
+    my %hash = $structure{hash}->%*;
+
+    if (exists $Debug{$name} and $Options{debug} & $Debug{$name}) {
+        warn 'key is:', "\n";
+        p %key;
+        warn 'hash is:', "\n";
+        p %hash;
+        die "exit $name\n" if $Options{quit} & $Debug{$name};
+    }
+
+    my @TypeKey = $structure{TypeKey}->@*;
     my %rtn;
     my @fields = split /\t/, shift @lines;
     $fields[0] =~ s/.//;
-
-    my %key = $structure{key}->%*;
-    my %hash = $structure{hash}->%*;
-    printf STDERR "loading $Options{$type}{file} ...";
 
     my %tmp;
     for my $line (@lines) {
         last if $Options{limit} and $Options{limit} == keys %rtn;
         @tmp{@fields} = split /\t/, $line;
+        my $TypeKey = join('.', @tmp{@TypeKey});
         my ($album, @removed) = Stripper($tmp{$key{cd}});
         my ($album_key, $key_pair) = _GenHashMap($album);
         my ($id, $artist, $title) = @tmp{$hash{cd}->@*};
@@ -189,39 +209,44 @@ sub LoadData ($type = $Options{testing}) { #AAA
             $rtn{$album_key}{cd} = {%tmp{$hash{cd}->@*}};
             $rtn{$album_key}{cd}{stripped} = $album;
             $rtn{$album_key}{cd}{removed} = @removed ? [@removed] : [];
+            $rtn{$album_key}{cd}{key} = $album_key;
+            $rtn{$album_key}{cd}{key_pair} = $key_pair;
+            $rtn{$album_key}{cd}{uc $type} = Digest::MD5->new->add($TypeKey)->hexdigest;
         }
     }
-    warn 'done', "\n";
+    printf STDERR "done\n%s has %-4d keys\n", $type, scalar keys %rtn;
     return keys %rtn ? (wantarray ? %rtn : \%rtn) : undef;
 } #ZZZ
 
 sub ProcessCli (@input) { #AAA
+    my ( undef, $name) = split /:+/, (caller(0))[3];
     %Options = (
-	limit   => 0,
-	flip    => 0,
-	verbose => 0,
-	debug   => 0,
-	dump    => 0,
-	bad     => 0,
-        quit    => 0,
-        testing => undef,
+        quit    => 0, limit => 0, flip => 0,
+	verbose => 0, debug => 0, dump => 0,
+        help    => 0, testing => 0,
+        keys => [],
 	slave   => {file => 'slave.tab'},
 	master  => {file => 'master.tab'},
-	keys    => [],
     );
 
-    my @options = ( 'flip|hash_map', 'verbose+', 'limit=i',
-        'keys=s', 'dump', 'bad', 'testing=s',
-        'slave=s'  => sub {$Options{slave}{file}  = $_[1]},
-        'master=s' => sub {$Options{master}{file} = $_[1]},
-        'debug=i' => sub {$Options{debug} ^= 1<<$_[1]},
-        'quit' => sub {$Options{debug} ^= 1},
+    my @options = (
+        'flip|hash_map', 'verbose+',
+        'dump', 'testing', 'help',
+        'limit=i', 'keys=s',
+        'slave=s'  => sub {$Options{$_[0]}{file}  = $_[1]},
+        'master=s' => sub {$Options{$_[0]}{file} = $_[1]},
+        'debug=s' => sub {_errors(@_)},
+        'quit=s' => sub {_errors(@_); $Options{debug} |= $Debug{$_[0]}; },
     );
     GetOptionsFromArray(\@input, \%Options, @options) or die 'illegal options', "\n";
-    if ($Options{debug} & 1<<1) {
-        p %Options;
-        die 'early out', "\n" if $Options{debug} & 1;
+    if (my $test = $Debug{$name}) {
+        warn 'options:', "\n";
+        p %Options if $Options{debug} & $test;
+        warn 'files:', "\n";
+        p @input;
+        die 'exit', "\n" if $Options{quit} & $test;
     }
+
     for (qw/slave master/) {
         $Options{$_}{file} = readlink $Options{$_}{file} if -l $Options{$_}{file};
         if (-s $Options{$_}{file}) {
@@ -240,15 +265,29 @@ sub ProcessCli (@input) { #AAA
     return wantarray ? @input : \@input;
 } #ZZZ
 
-sub DumpWork ($ref_h) { #AAA
-    my $type = $Options{testing};
-    if ($Options{debug} & 1<<2) { # hmmm.  maybe print it out instead
-        _CheckDisplay($ref_h) if $Options{keys}->@*;
-    }
-    if ($Options{debug} & 1<<3) {
-        my $dump_file = path($Options{$type}{file} =~ s/.tab/.dump/r);
-        $dump_file->spew(JSON->new->utf8->pretty->encode($ref_h));
-    }
-} #ZZZ
+# ||||||||||
+# 9876543210  debug option value
+# xxxxxxxxxx  |
+#       ||||_ 1 immediate quit after first dump
+#       |||__ 2 display options
+#       ||___ 3 display entries for specified keys
+#       |____ 4 display all entries
+
+#sub DumpWork ($ref_h) { #AAA
+#    my $type = $Options{testing};
+#    if ($Options{debug} & $Debug{options}) {
+#        p $ref_h;
+#    }
+#    if ($Options{debug} & $Debug{keys}) { # hmmm.  maybe print it out slected keys instead
+#        _CheckDisplay($ref_h) if $Options{keys}->@*;
+#    }
+#    if ($Options{debug} & $Debug{all}) { # hmmm.  maybe print it out slected keys instead
+#        p $ref_h;
+#    }
+#    if ($Options{debug} & $Debug{write}) {
+#        my $dump_file = path($Options{$type}{file} =~ s/.tab/.dump/r);
+#        $dump_file->spew(JSON->new->utf8->pretty->encode($ref_h));
+#    }
+#} #ZZZ
 
 1;

@@ -6,7 +6,7 @@
 use warnings;
 use strict;
 use v5.22;
-use experimental qw(smartmatch signatures postderef);
+use experimental qw(smartmatch signatures postderef autoderef);
 
 use Getopt::Long qw( :config no_ignore_case auto_help );
 #use Digest::MD5 qw(md5_hex);
@@ -20,7 +20,7 @@ use Music;
 
 # main #AAA
 
-Music::ProcessCli(@ARGV);
+my @names = Music::ProcessCli(@ARGV) or die 'no files specified to work with', "\n";
 
 ## %structure #AAA
 #my %structure = (
@@ -42,35 +42,67 @@ Music::ProcessCli(@ARGV);
 #);
 ##ZZZ
 
-#my $master_file = $Music::Options{master}//'master.tab';
-if (defined $Music::Options{testing}) {
-    my %tmp_data = Music::LoadData();
-    Music::DumpWork(\%tmp_data) if $Music::Options{debug};
-}
-die 'done with testing', "\n" if $Music::Options{debug} & 1;
+my %Master = Music::LoadData('master') if 'master' ~~ @names;
+my %Slave =  Music::LoadData('slave') if 'slave' ~~ @names;
 
-#if (keys %master_data) {
-#    my @master_keys = grep {$_ ne 'fields'} keys %master_data;
-#    my %master_stripped = map {$master_data{$_}{cd}{stripped} => $_} @master_keys;
+if ($Music::Options{testing}) {
+    if ($Music::Options{debug}) {
+        if (1 == @names) {
+            my %file = keys %Master ? %Master : %Slave;
+            p %file if $Music::Options{debug} & $Music::Debug{debug};
+            die 'done with testing', "\n" if $Music::Options{quit} & $Music::Debug{debug};
+        } else {
+            warn 'we test to see if we can find one Slave in the Master list', "\n";
+            my ($test) =  $Music::Options{keys}->@* ? $Music::Options{keys}->@* : keys %Slave;
+            warn 'our test case is: ', $test, "\n";
+            my %t = $Slave{$test}->%*;
+            my %whole = ($test => {%t});
+            p %whole;
+            my @Master_keys = keys %Master;
+            warn 'searching Master for '.$test, "\n";
+            my $fuzzy = Text::Fuzzy->new($test);
+            $fuzzy->set_max_distance(5);
+            my $match = $fuzzy->nearestv(\@Master_keys) or die 'no  match found', "\n";
+            my %found = ($match => $Master{$match});
+            p %found;
+            die 'we exit now', "\n";
+        }
+    } else {
+        die 'makes no sense; testing set but debug is not?', "\n";
+    }
+}
+
+my @Master_keys = keys %Master;
+for my $SlaveCd (keys %Slave) {
+    my $fuzzy = Text::Fuzzy->new($SlaveCd);
+    $fuzzy->set_max_distance(5);
+    $Slave{$SlaveCd}{cd}{MASTER} = $fuzzy->nearestv(\@Master_keys);
+}
+my %stats;
+$stats{matched} = grep {defined $Slave{$_}{cd}{MASTER}} keys %Slave;
+say $Slave{$_}{cd}{ALBUM} for grep {! defined $Slave{$_}{cd}{MASTER}} keys %Slave;
+p %stats;
+
+#if (keys %master) {
+#    my @master_keys = grep {$_ ne 'fields'} keys %master;
+#    my %master_stripped = map {$master{$_}{cd}{stripped} => $_} @master_keys;
 #    warn "we have ".scalar @master_keys." disks in master\n";
-#    my %tmp_data = $master_data{$master_keys[0]}->%*;
+#    my %tmp_data = $master{$master_keys[0]}->%*;
 #    p %tmp_data;
 ##   p %master_stripped;
 #} else {
-#    die "error reading $master_file\n";
+#    die "error reading $Music::Options{master}\n";
 #}
 #
-#my $slave_file = $opts{slave}//'slave.tab';
-#my %slave_data = Music::LoadSlaveData($slave_file, %opts);
-#if (keys %slave_data) {
-#    my @slave_keys = grep {$_ ne 'fields'} keys %slave_data;
-#    my %slave_stripped = map {$slave_data{$_}{cd}{stripped} => $_} @slave_keys;
+#if (keys %slave) {
+#    my @slave_keys = grep {$_ ne 'fields'} keys %slave;
+#    my %slave_stripped = map {$slave{$_}{cd}{stripped} => $_} @slave_keys;
 #    warn "we have ".scalar @slave_keys." disks in slave\n";
-#    %tmp_data = $slave_data{$slave_keys[0]}->%*;
+#    my %tmp_data = $slave{$slave_keys[0]}->%*;
 #    p %tmp_data;
 ##   p %slave_stripped;
 #} else {
-#    die "error reading $slave_file\n"
+#    die "error reading $Music::Options{slave}\n"
 #}
 #
 ##for my $base (qw/master slave/) {
@@ -86,7 +118,7 @@ die 'done with testing', "\n" if $Music::Options{debug} & 1;
 #my $check = 1;
 #for my $stripped_slave (keys %slave_stripped) {
 #    my $slave_key = $slave_stripped{$stripped_slave};
-#    printf STDERR "checking %4d %s\n", $check++, $slave_data{$slave_key}{cd}{ALBUM};
+#    printf STDERR "checking %4d %s\n", $check++, $slave{$slave_key}{cd}{ALBUM};
 #
 #    my $saved = 0;
 #    my $master_key;
@@ -99,18 +131,18 @@ die 'done with testing', "\n" if $Music::Options{debug} & 1;
 ##        if ($stripped_master =~ /$stripped_slave/ || $stripped_slave =~ /$stripped_master/) {
 ##            $master_key = $master_stripped{$stripped_master};
 ###               warn "stripped_master ".$stripped_master."\n";
-##            push @{$assigned{$slave_data{$slave_key}{cd}{ALBUM}}}, $master_data{$master_key}{cd}{USER_NUMBER};
+##            push @{$assigned{$slave{$slave_key}{cd}{ALBUM}}}, $master{$master_key}{cd}{USER_NUMBER};
 ##            $saved++;
 ##        }
 ##    }
 ##    if (0 == $saved) {
-##        $problems{$slave_key}{slave} = {$slave_data{$slave_key}{cd}->%*};
-##        $problems{$slave_key}{master} = {$master_data{$master_key}{cd}->%*} if $master_key;
+##        $problems{$slave_key}{slave} = {$slave{$slave_key}{cd}->%*};
+##        $problems{$slave_key}{master} = {$master{$master_key}{cd}->%*} if $master_key;
 ##    }
 #}
-#__END__
-#path('problems.json')->spew(JSON->new->utf8->pretty->encode(\%problems));
-#path('assigned.json')->spew(JSON->new->utf8->pretty->encode(\%assigned));
+__END__
+path('problems.json')->spew(JSON->new->utf8->pretty->encode(\%problems));
+path('assigned.json')->spew(JSON->new->utf8->pretty->encode(\%assigned));
 
 #ZZZ
 
