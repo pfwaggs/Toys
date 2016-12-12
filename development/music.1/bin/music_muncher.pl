@@ -72,14 +72,16 @@ if ($Music::Options{testing}) {
     }
 }
 
+my %matches;
 my @Master_keys = keys %Master;
 for my $SlaveCd (keys %Slave) {
     my $fuzzy = Text::Fuzzy->new($SlaveCd);
-    $fuzzy->set_max_distance(5);
-    $Slave{$SlaveCd}{cd}{MASTER} = $fuzzy->nearestv(\@Master_keys);
+    $fuzzy->set_max_distance(5); # todo: make this a cli option
+    my $master = $fuzzy->nearestv(\@Master_keys);
+    $Slave{$SlaveCd}{cd}{INDEX} = $master ? $Master{$master}{cd}{USER_NUMBER} : undef;
 }
 my %stats;
-$stats{matched} = grep {defined $Slave{$_}{cd}{MASTER}} keys %Slave;
+$stats{matched} = grep {$Slave{$_}{cd}{INDEX} =~ /^\d+$/} keys %Slave;
 say $Slave{$_}{cd}{ALBUM} for grep {! defined $Slave{$_}{cd}{MASTER}} keys %Slave;
 p %stats;
 

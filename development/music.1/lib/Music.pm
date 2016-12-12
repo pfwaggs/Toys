@@ -25,6 +25,7 @@ use Text::Fuzzy;
 
 our %Options;
 our %Debug;
+our @Lines;
 my @stupid_useless_list = qw/scheme keys all write/;
 while (my ($c, $n) = each @stupid_useless_list) {
     $Debug{$n} = 1<<$c;
@@ -172,11 +173,70 @@ sub Stripper ($str) { #AAA
 #    return wantarray ? %slave : \%slave;
 #} #ZZZ
 
+sub LoadMasterData {
+    my ( undef, $self) = split /:+/, (caller(0))[3];
+    warn 'loading master data';
+    @Lines = $Options{master}{file}->lines_utf8({chomp=>1});
+
+    my @TypeKey = qw/TITLE ARTIST/;
+    my %rtn;
+    $rtn{HEADER} = shift @Lines;
+    $rtn{HEADER} =~ s/^\W//;
+    my @fields = split /\t/, $rtn{HEADER};
+    for my $line (@Lines) {
+        my %tmp;
+        @tmp{@fields} = split /\t/, $line;
+        my ($album, @removed) = Stripper($tmp{TITLE});
+        $album = join('', sort split(//, _ModSpecials($album)));
+        $rtn{$album} = {USER_NUMBER => $tmp{USER_NUMBER}, line => $line};
+    }
+    return wantarray ? %rtn : \%rtn;
+}
+
+sub MergeSlaveData ($master_a) {
+    my %Master = $master_a->%*;
+    my @MasterKeys = keys %Master;
+    my ( undef, $self) = split /:+/, (caller(0))[3];
+    warn 'loading slave data';
+
+    @Lines = $Options{slave}{file}->lines_utf8({chomp=>1});
+    my @TypeKey = qw/ALBUM ARTIST/;
+    my %rtn;
+    $rtn{HEADER} = shift @Lines;
+    my @fields = split /\t/, $rtn{HEADER};
+    for my $line (@Lines) {
+        my %tmp;
+        @tmp{@fields} = split /\t/, $line;
+        my ($album, @removed) = Stripper($tmp{ALBUM});
+        $album = join('', sort split(//, _ModSpecials($album)));
+        push @{$rtn{$album}{tracks}}, $line;
+        next if exists $rtn{$album}{MASTER};
+	my $fuzzy = Text::Fuzzy->new($album);
+	$fuzzy->set_max_distance(5); # todo: make this a cli option
+	my @matches = $fuzzy->nearestv(\@MasterKeys);
+        if (1 < @matches) {
+            warn 'multiple matches for '.join(' / ',@tmp{@TypeKey}), "\n";
+            say "\t$_" for @matches;
+        } else {
+            my $master = shift @matches;
+            $rtn{$album}{MASTER} = $master =~ /^\w+$/ ? $Master{$master}{USER_NUMBER} : '????';
+        }
+    }
+    my @tracks;
+    for my $album (grep { $_ ne 'HEADER'} keys %rtn) {
+        push @tracks, map {"$rtn{$album}{MASTER}\t$_"} $rtn{$album}{tracks}->@*;
+    }
+    $rtn{HEADER} =~ s/^/DISK\t/;
+    unshift @tracks, $rtn{HEADER};
+
+    return wantarray ? @tracks : \@tracks;
+}
+
 sub LoadData ($type = $Options{testing}) { #AAA
     my ( undef, $name) = split /:+/, (caller(0))[3];
     warn 'loading '.$type, "\n";
     my %structure = JSON->new->utf8->decode($Options{$type}{conf}->slurp)->%*;
-    my @lines = $Options{$type}{file}->lines_utf8({chomp=>1});
+    @Lines = $Options{$type}{file}->lines_utf8({chomp=>1});
 
     printf STDERR "loading $Options{$type}{file} ...";
     my %key = $structure{key}->%*;
@@ -192,11 +252,11 @@ sub LoadData ($type = $Options{testing}) { #AAA
 
     my @TypeKey = $structure{TypeKey}->@*;
     my %rtn;
-    my @fields = split /\t/, shift @lines;
-    $fields[0] =~ s/.//;
+    my @fields = split /\t/, shift @Lines;
+    $fields[0] =~ s/^\W//;
 
     my %tmp;
-    for my $line (@lines) {
+    for my $line (@Lines) {
         last if $Options{limit} and $Options{limit} == keys %rtn;
         @tmp{@fields} = split /\t/, $line;
         my $TypeKey = join('.', @tmp{@TypeKey});
@@ -214,6 +274,7 @@ sub LoadData ($type = $Options{testing}) { #AAA
             $rtn{$album_key}{cd}{uc $type} = Digest::MD5->new->add($TypeKey)->hexdigest;
         }
     }
+    unshift @Lines, join("\t", @fields);
     printf STDERR "done\n%s has %-4d keys\n", $type, scalar keys %rtn;
     return keys %rtn ? (wantarray ? %rtn : \%rtn) : undef;
 } #ZZZ
