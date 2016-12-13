@@ -17,11 +17,27 @@ use Getopt::Long qw(GetOptionsFromArray :config pass_through no_ignore_case auto
 #use File::Basename;
 #use Cwd;
 
+# from perl cookbook..................................+
+use Term::Cap;                                        #
+my $OSPEED = 9600;                                    #
+eval {                                                #
+    require POSIX;                                    #
+    my $termios = POSIX::Termios->new();              #
+    $termios->getattr;                                #
+    $OSPEED = $termios->getospeed;                    #
+};                                                    #
+my $terminal = Term::Cap->Tgetent({OSPEED=>$OSPEED}); #
+our $clear = $terminal->Tputs('cl', 1, *STDERR);      #
+#.....................................................+
+
+
 use Digest::MD5 qw(md5_hex);
 use Path::Tiny;
 use JSON;
 use Data::Printer; # use_prototypes=>0;
 use Text::Fuzzy;
+use Term::UI;
+my $TermUI = Term::ReadLine->new($ENV{TERM});
 
 our %Options;
 our %Debug;
@@ -215,11 +231,29 @@ sub MergeSlaveData ($master_a) {
 	$fuzzy->set_max_distance(5); # todo: make this a cli option
 	my @matches = $fuzzy->nearestv(\@MasterKeys);
         if (1 < @matches) {
-            warn 'multiple matches for '.join(' / ',@tmp{@TypeKey}), "\n";
-            say "\t$_" for @matches;
-        } else {
+            print $clear;
+            my @MasterList = map {$Master{$_}{line}." / $_"} @matches;
+            push @MasterList, 'skip';
+            my $print_me = join ' / ', @tmp{@TypeKey}, $album;
+            my $choice = $TermUI->get_reply(
+                prompt => 'pick line: ',
+                choices => \@MasterList,
+                default => $MasterList[-1],
+                print_me => $print_me
+            );
+            if ($choice eq 'skip') {
+                $rtn{$album}{MASTER} = '????';
+            } else {
+                ($choice) =~ /^(\d+)/;
+                say $choice;
+                die;
+                $rtn{$album}{MASTER} = $Master{$choice}{USER_NUMBER};
+            }
+        } elsif (1 == @matches) {
             my $master = shift @matches;
-            $rtn{$album}{MASTER} = $master =~ /^\w+$/ ? $Master{$master}{USER_NUMBER} : '????';
+            $rtn{$album}{MASTER} = $Master{$master}{USER_NUMBER};
+        } else {
+            $rtn{$album}{MASTER} = '????';
         }
     }
     my @tracks;
