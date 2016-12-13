@@ -189,7 +189,7 @@ sub Stripper ($str) { #AAA
 #    return wantarray ? %slave : \%slave;
 #} #ZZZ
 
-sub LoadMasterData {
+sub LoadMasterData { #AAA
     my ( undef, $self) = split /:+/, (caller(0))[3];
     warn 'loading master data';
     @Lines = $Options{master}{file}->lines_utf8({chomp=>1});
@@ -207,7 +207,7 @@ sub LoadMasterData {
         $rtn{$album} = {USER_NUMBER => $tmp{USER_NUMBER}, line => $line};
     }
     return wantarray ? %rtn : \%rtn;
-}
+} #ZZZ
 
 sub MergeSlaveData ($master_a) {
     my %Master = $master_a->%*;
@@ -228,9 +228,14 @@ sub MergeSlaveData ($master_a) {
         push @{$rtn{$album}{tracks}}, $line;
         next if exists $rtn{$album}{MASTER};
 	my $fuzzy = Text::Fuzzy->new($album);
-	$fuzzy->set_max_distance(5); # todo: make this a cli option
+	$fuzzy->set_max_distance($Options{fuzzy});
 	my @matches = $fuzzy->nearestv(\@MasterKeys);
-        if (1 < @matches) {
+        if (0 == @matches) {
+            $rtn{$album}{MASTER} = '????';
+        } elsif (1 == @matches) {
+            my $master = shift @matches;
+            $rtn{$album}{MASTER} = $Master{$master}{USER_NUMBER};
+        } else {
             print $clear;
             my @MasterList = map {$Master{$_}{line}." / $_"} @matches;
             push @MasterList, 'skip';
@@ -249,11 +254,6 @@ sub MergeSlaveData ($master_a) {
                 die;
                 $rtn{$album}{MASTER} = $Master{$choice}{USER_NUMBER};
             }
-        } elsif (1 == @matches) {
-            my $master = shift @matches;
-            $rtn{$album}{MASTER} = $Master{$master}{USER_NUMBER};
-        } else {
-            $rtn{$album}{MASTER} = '????';
         }
     }
     my @tracks;
@@ -318,7 +318,7 @@ sub ProcessCli (@input) { #AAA
     %Options = (
         quit    => 0, limit => 0, flip => 0,
 	verbose => 0, debug => 0, dump => 0,
-        help    => 0, testing => 0,
+        help    => 0, testing => 0, fuzzy => 5,
         keys => [],
 	slave   => {file => 'slave.tab'},
 	master  => {file => 'master.tab'},
@@ -327,7 +327,7 @@ sub ProcessCli (@input) { #AAA
     my @options = (
         'flip|hash_map', 'verbose+',
         'dump', 'testing', 'help',
-        'limit=i', 'keys=s',
+        'limit=i', 'keys=s', 'fuzzy=i',
         'slave=s'  => sub {$Options{$_[0]}{file}  = $_[1]},
         'master=s' => sub {$Options{$_[0]}{file} = $_[1]},
         'debug=s' => sub {_errors(@_)},
