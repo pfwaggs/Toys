@@ -22,5 +22,11 @@ my @names = Music::ProcessCli(@ARGV) or die 'no files specified to work with', "
 
 my %Master = Music::LoadMasterData();
 my @tracks = Music::MergeSlaveData(\%Master);
+my $header = shift @tracks;
 
-path('testing.txt')->spew_utf8(map {$_."\n"} @tracks);
+my @accepted = ($header, grep {/^\d+\t/} @tracks); 
+my @rejected = map {s/^.*?\t//r} ($header, grep {/^\?+\t/} @tracks);
+
+
+path('accepted.txt')->spew_utf8(map {$_."\n"} @accepted);
+path('rejected.txt')->spew_utf8(map {$_."\n"} @rejected);
