@@ -78,6 +78,11 @@ sub _Stripper ($str) { #AAA
         @matched ? push(@removed, @matched) : next;
         $str =~ s/($_)//g;
     }
+#    my ($pre, @post) = split /:/, $str;
+#    if (defined $pre) {
+#        $str = $pre;
+#        push @removed, @post if @post;
+#    }
     $str =~ s/^\s*|\s*$//g;
     my %rtn = (stripped => $str, removed => [@removed]);
     return wantarray ? %rtn : \%rtn;
@@ -128,7 +133,7 @@ sub LoadRawData ($Filekey, $MangleKey, $Extras) { #AAA
     return wantarray ? %rtn : \%rtn;
 } #ZZZ
 
-sub Merge ($input) { #AAA
+sub MergeByAlbum ($input) { #AAA
     my %Master = $input->%{master}->%*;
     my @MasterKeys = grep {$_ ne 'HEADER'} keys %Master;
     my %Slave = $input->%{slave}->%*;
