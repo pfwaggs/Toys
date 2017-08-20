@@ -1,0 +1,11 @@
+---
+TypeKey:
+  - TITLE
+  - ARTIST
+hash:
+  cd:
+    - USER_NUMBER
+    - ARTIST
+    - TITLE
+key:
+  cd: TITLE

@@ -1,0 +1,21 @@
+---
+TypeKey:
+  - ALBUM
+  - ARTIST
+hash:
+  cd:
+    - ALBUM
+    - ARTIST
+  misc:
+    - GENRE
+    - DATE
+  track:
+    - ARTIST
+    - TITLE
+    - TIME
+key:
+  cd: ALBUM
+  track: TRACK
+output:
+  - ALBUM
+  - ARTIST
