@@ -1,8 +1,6 @@
 #!/usr/bin/env perl
 
-# vim: ai si sw=4 sts=4 et fdc=4 fmr=AAA,ZZZ fdm=marker
-
-# normal junk #AAA
+# normal junk #AzA
 use warnings;
 use strict;
 use v5.22;
@@ -14,15 +12,17 @@ use Path::Tiny;
 use JSON;
 use Data::Printer colored => 0; # use_prototypes=>0;
 
+use lib join('/', $ENV{PWD}, 'lib');
+use lib join('/', path($ENV{PWD})->parent, 'lib');
 use Music;
 
-#ZZZ
+#ZaZ
 
-# main #AAA
+# main #AzA
 
 my @names = Music::ProcessCli(@ARGV) or die 'no files specified to work with', "\n";
 
-## %structure #AAA
+## %structure #AzA
 #my %structure = (
 #    master => {
 #        key => { cd => 'TITLE', },
@@ -40,7 +40,7 @@ my @names = Music::ProcessCli(@ARGV) or die 'no files specified to work with', "
 #        },
 #    },
 #);
-##ZZZ
+##ZaZ
 
 my %Master = Music::LoadData('master') if 'master' ~~ @names;
 my %Slave =  Music::LoadData('slave') if 'slave' ~~ @names;
@@ -146,5 +146,5 @@ __END__
 path('problems.json')->spew(JSON->new->utf8->pretty->encode(\%problems));
 path('assigned.json')->spew(JSON->new->utf8->pretty->encode(\%assigned));
 
-#ZZZ
+#ZaZ
 

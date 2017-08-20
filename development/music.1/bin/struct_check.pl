@@ -1,8 +1,6 @@
 #!/usr/bin/env perl
 
-# vim: ai si sw=4 sts=4 et fdc=4 fmr=AAA,ZZZ fdm=marker
-
-# normal junk #AAA
+# normal junk #AzA
 use warnings;
 use strict;
 use v5.22;
@@ -27,10 +25,10 @@ use Data::Printer;
 #}
 #use Menu;
 
-#ZZZ
+#ZaZ
 
 #####################
-# %structure1 #AAA
+# %structure1 #AzA
 my %structure1 = (
     readerware => {
         key => { cd => 'TITLE', },
@@ -48,10 +46,10 @@ my %structure1 = (
         },
     },
 );
-#ZZZ
+#ZaZ
 ######################
 
-# %structure2 #AAA
+# %structure2 #AzA
 my %structure2 = (
     key => {
         track => 'TRACK',
@@ -63,7 +61,7 @@ my %structure2 = (
         misc  => [qw/GENRE DATE/],
     },
 );
-#ZZZ
+#ZaZ
 
 p $structure1{dmp3}->%*;
 p $structure1{readerware}->%*;

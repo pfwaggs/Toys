@@ -1,8 +1,6 @@
 #!/usr/bin/env perl
 
-# vim: ai si sw=4 sts=4 et fdc=4 fmr=AAA,ZZZ fdm=marker
-
-# normal junk #AAA
+# normal junk #AzA
 use warnings;
 use strict;
 use v5.22;
@@ -14,9 +12,11 @@ use Path::Tiny;
 use JSON;
 use Data::Printer colored => 0; # use_prototypes=>0;
 
+use lib join('/', $ENV{PWD}, 'lib');
+use lib join('/', path($ENV{PWD})->parent, 'lib');
 use Music;
 
-#ZZZ
+#ZaZ
 
 my @names = Music::ProcessCli(@ARGV) or die 'no files specified to work with', "\n";
 

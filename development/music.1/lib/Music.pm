@@ -1,14 +1,13 @@
 package Music;
 
-# vim: ai si sw=4 sts=4 et fdc=4 fmr=AAA,ZZZ fdm=marker
-
-# normal junk #AAA
+# normal junk #AzA
 use warnings;
 use strict;
 use v5.22;
 use experimental qw(smartmatch signatures postderef autoderef);
 
 use Getopt::Long qw(GetOptionsFromArray :config pass_through no_ignore_case auto_help);
+
 #my %opts;
 #my @opts;
 #my @commands;
@@ -27,20 +26,21 @@ eval {                                                #
     $OSPEED = $termios->getospeed;                    #
 };                                                    #
 my $terminal = Term::Cap->Tgetent({OSPEED=>$OSPEED}); #
-our $clear = $terminal->Tputs('cl', 1, *STDERR);      #
+my $clear = $terminal->Tputs('cl', 1, *STDERR);      #
 #.....................................................+
 
 use Digest::MD5 qw(md5_hex);
 use Path::Tiny;
-use JSON;
+use YAML::Tiny qw(LoadFile DumpFile);
+
 use Data::Printer; # use_prototypes=>0;
 use Text::Fuzzy;
 use Term::UI;
 my $TermUI = Term::ReadLine->new($ENV{TERM});
 
-our %Options;
-our %Debug;
-#our @Lines;
+my %Options;
+my %Debug;
+
 my @stupid_useless_list = qw/scheme keys all write/;
 while (my ($c, $n) = each @stupid_useless_list) {
     $Debug{$n} = 1<<$c;
@@ -52,9 +52,9 @@ sub _errors ($key, $val) {
     } else {
         $Options{$key} ^= $Debug{$val} = 1 << keys %Debug;
     }
-} #ZZZ
+} #ZaZ
 
-sub _CheckDisplay ($db_h) { #AAA
+sub _CheckDisplay ($db_h) { #AzA
     my %read = $db_h->%*;
     warn "skipping $_", "\n" for grep {! exists $read{$_}} keys %read;
     for (grep {exists $read{$_}} $Options{keys}->@*) {
@@ -64,9 +64,9 @@ sub _CheckDisplay ($db_h) { #AAA
         @th{qw/key hash/} = ($key, $hash);
         p %th;
     }
-} #ZZZ
+} #ZaZ
 
-sub _Stripper ($str) { #AAA
+sub _Stripper ($str) { #AzA
     my @excludes = (
         qr/\[.+\]/, qr/\(.+\)/, qr/\{.+\}/,
         qr/<.+>/, qr/(?i:\Wdis[ck]\s+\w+)/,
@@ -86,25 +86,25 @@ sub _Stripper ($str) { #AAA
     $str =~ s/^\s*|\s*$//g;
     my %rtn = (stripped => $str, removed => [@removed]);
     return wantarray ? %rtn : \%rtn;
-} #ZZZ
+} #ZaZ
 
-sub _SortedLetters ($str) { #AAA rewrites & as and, removes /, converts \W to ' '
+sub _SortedLetters ($str) { #AzA rewrites & as and, removes /, converts \W to ' '
     $str =~ s/\&/and/g;
     $str =~ s{/}{}g if $str =~ m{/};
     $str =~ s/\W//g;
     $str =~ s/\s+//g;
     $str = join('', sort split(//, lc $str));;
     return $str;
-} #ZZZ
+} #ZaZ
 
-sub Mangle ($str) { #AAA
+sub Mangle ($str) { #AzA
     my %rtn = _Stripper($str);
     $rtn{sorted} = _SortedLetters($rtn{stripped});
     $rtn{md5} = Digest::MD5->new->add($rtn{sorted})->hexdigest;
     return wantarray ? %rtn : \%rtn;
-} #ZZZ
+} #ZaZ
 
-sub LoadRawData ($Filekey, $MangleKey, $Extras) { #AAA
+sub LoadRawData ($Filekey, $MangleKey, $Extras) { #AzA
     my ( undef, $self) = split /:+/, (caller(0))[3];
     printf STDERR "loading %s data\n", $Filekey;
     my @lines = $Options{$Filekey}{file}->lines_utf8({chomp=>1});
@@ -131,9 +131,9 @@ sub LoadRawData ($Filekey, $MangleKey, $Extras) { #AAA
         }
     }
     return wantarray ? %rtn : \%rtn;
-} #ZZZ
+} #ZaZ
 
-sub MergeByAlbum ($input) { #AAA
+sub MergeByAlbum ($input) { #AzA
     my %Master = $input->%{master}->%*;
     my @MasterKeys = grep {$_ ne 'HEADER'} keys %Master;
     my %Slave = $input->%{slave}->%*;
@@ -178,9 +178,9 @@ sub MergeByAlbum ($input) { #AAA
     printf STDERR "we skipped %d\n", $skipped;
     printf STDERR "we are missing %d\n", $missing;
     return wantarray ? %rtn : \%rtn;
-} #ZZZ
+} #ZaZ
 
-sub MergeSlaveData ($master_a) { #AAA
+sub MergeSlaveData ($master_a) { #AzA
     my %Master = $master_a->%*;
     my @MasterKeys = keys %Master;
     my ( undef, $self) = split /:+/, (caller(0))[3];
@@ -234,11 +234,11 @@ sub MergeSlaveData ($master_a) { #AAA
     unshift @tracks, $rtn{HEADER};
 
     return wantarray ? @tracks : \@tracks;
-} #ZZZ
+} #ZaZ
 
-sub ProcessCli (@input) { #AAA
+sub ProcessCli (@input) { #AzA
     my ( undef, $name) = split /:+/, (caller(0))[3];
-    %Options = ( #AAA
+    %Options = ( #AzA
         flip   => 0,
         help   => 0,
         fuzzy  => 5,
@@ -249,8 +249,8 @@ sub ProcessCli (@input) { #AAA
 	master => {file => 'master.tab'},
 	debug  => 0,
         quit   => 0,
-    ); #ZZZ
-    my @options = ( #AAA
+    ); #ZaZ
+    my @options = ( #AzA
         'flip|hash_map',
         'help',
         'fuzzy=i',
@@ -261,8 +261,8 @@ sub ProcessCli (@input) { #AAA
         'master=s' => sub {$Options{$_[0]}{file} = $_[1]},
         'debug=s'  => sub {_errors(@_)},
         'quit=s'   => sub {_errors(@_); $Options{debug} ^= $Debug{$_[1]}; },
-    ); #ZZZ
-    my %help = ( #AAA
+    ); #ZaZ
+    my %help = ( #AzA
         flip   => '',
         help   => '',
         limit  => 'restricts the number of cds read from slave input file',
@@ -273,7 +273,7 @@ sub ProcessCli (@input) { #AAA
         debug  => 'flag a routine for debugging.',
         quit   => 'indicate a routine to die in. see debug.',
          
-    ); #ZZZ
+    ); #ZaZ
     GetOptionsFromArray(\@input, \%Options, @options) or die 'illegal options', "\n";
     if (my $test = $Debug{$name}) {
         warn 'options:', "\n";
@@ -293,9 +293,9 @@ sub ProcessCli (@input) { #AAA
     }
     
     return wantarray ? @input : \@input;
-} #ZZZ
+} #ZaZ
 
-#sub DumpWork ($ref_h) { #AAA
+#sub DumpWork ($ref_h) { #AzA
 #    my $type = $Options{testing};
 #    if ($Options{debug} & $Debug{options}) {
 #        p $ref_h;
@@ -310,13 +310,13 @@ sub ProcessCli (@input) { #AAA
 #        my $dump_file = path($Options{$type}{file} =~ s/.tab/.dump/r);
 #        $dump_file->spew(JSON->new->utf8->pretty->encode($ref_h));
 #    }
-#} #ZZZ
+#} #ZaZ
 
 1;
 
 __END__
 
-sub LoadData ($type = $Options{testing}) { #AAA
+sub LoadData ($type = $Options{testing}) { #AzA
     my ( undef, $name) = split /:+/, (caller(0))[3];
     warn 'loading '.$type, "\n";
     my %structure = JSON->new->utf8->decode($Options{$type}{conf}->slurp)->%*;
@@ -360,9 +360,9 @@ sub LoadData ($type = $Options{testing}) { #AAA
     unshift @Lines, join("\t", @fields);
     printf STDERR "done\n%s has %-4d keys\n", $type, scalar keys %rtn;
     return keys %rtn ? (wantarray ? %rtn : \%rtn) : undef;
-} #ZZZ
+} #ZaZ
 
-sub WordScore ($astr, $bstr) { #AAA
+sub WordScore ($astr, $bstr) { #AzA
     my ($short, $long) = (length $astr <= length $bstr) ? ($astr, $bstr) : ($bstr, $astr);
     $short = _SortedLetters($short);
     $long = _SortedLetters($long);
@@ -384,9 +384,9 @@ sub WordScore ($astr, $bstr) { #AAA
         last if $score;
     }
     return $score;
-} #ZZZ
+} #ZaZ
 
-#sub LoadSlaveData ($data_file, %opts) { #AAA
+#sub LoadSlaveData ($data_file, %opts) { #AzA
 #    return undef unless path($data_file)->is_file;
 #    my $struct_file = ($data_file =~ s/.tab/.conf/r);
 #    return undef unless path($struct_file)->is_file;
@@ -432,9 +432,9 @@ sub WordScore ($astr, $bstr) { #AAA
 #    path($dump_file)->spew(JSON->new->utf8->pretty->encode(\%slave));
 #    #my %rtn = CullSingletons(\%slave);
 #    return wantarray ? %slave : \%slave;
-#} #ZZZ
+#} #ZaZ
 
-sub CullSingletons ($dmp3_href) { #AAA
+sub CullSingletons ($dmp3_href) { #AzA
     my %dmp3 = %$dmp3_href;
     my %tracks_map = map {$_=>scalar $dmp3{$_}{cd}{tracks}->@*} keys %dmp3;
     my %rtn;
@@ -444,9 +444,9 @@ sub CullSingletons ($dmp3_href) { #AAA
     my %singletons = map {$_=>{$dmp3{$_}}} grep {1 == $tracks_map{$_}} keys %tracks_map;
     path('singletons.json')->spew(JSON->new->utf8->encode(\%singletons));
     return wantarray ? %rtn : \%rtn;
-} #ZZZ
+} #ZaZ
 
-sub LoadMasterData { #AAA
+sub LoadMasterData { #AzA
     my ( undef, $self) = split /:+/, (caller(0))[3];
     warn 'loading master data';
     my @Lines = $Options{master}{file}->lines_utf8({chomp=>1});
@@ -463,4 +463,4 @@ sub LoadMasterData { #AAA
         $rtn{$mangled{sorted}} = {USER_NUMBER => $tmp{USER_NUMBER}, line => $line};
     }
     return wantarray ? %rtn : \%rtn;
-} #ZZZ
+} #ZaZ

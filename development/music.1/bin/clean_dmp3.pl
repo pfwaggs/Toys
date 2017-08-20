@@ -1,8 +1,6 @@
 #!/usr/bin/env perl
 
-# vim: ai si sw=4 sts=4 et fdc=4 fmr=AAA,ZZZ fdm=marker
-
-# normal junk #AAA
+# normal junk #AzA
 use warnings;
 use strict;
 use v5.22;
@@ -20,7 +18,9 @@ use Path::Tiny;
 use JSON::PP;
 use Data::Printer;
 
-use Music;
+#use lib join('/', $ENV{PWD}, 'lib');
+#use lib join('/', path($ENV{PWD})->parent, 'lib');
+#use Music;
 
 #BEGIN {
 #    use experimental qw(smartmatch);
@@ -28,9 +28,9 @@ use Music;
 #}
 #use Menu;
 
-#ZZZ
+#ZaZ
 
-# rewrite ($db_h, $structure_h) #AAA
+# rewrite ($db_h, $structure_h) #AzA
 sub rewrite ($db_h, $structure_h) {
     my %db = %$db_h;
     my %structure = %$structure_h;
@@ -53,7 +53,7 @@ sub rewrite ($db_h, $structure_h) {
     unshift @return, join("\t",qw/ALBUM DISK TRACK TIME ARTIST TITLE/);
     return wantarray ? @return : \@return;
 }
-#ZZZ
+#ZaZ
 
 my $dmp3_rgx = qr/(?i:^dmp3.*)\.tab$/;
 my ($dmp3_file) = map {$_->basename} path('.')->children($dmp3_rgx);
@@ -72,7 +72,7 @@ my @opts = (
 );
 GetOptions( \%opts, @opts, 'dmp3=s' => \$dmp3_file,) or die "options are not correct\n";
 
-## %structure #AAA
+## %structure #AzA
 #my %structure = (
 #    key => {
 #        track => 'TRACK',
@@ -84,12 +84,12 @@ GetOptions( \%opts, @opts, 'dmp3=s' => \$dmp3_file,) or die "options are not cor
 #        misc  => [qw/GENRE DATE/],
 #    },
 #);
-##ZZZ
+##ZaZ
 
 my $tmp = JSON->new->decode(path('dmp3.conf')->slurp);
 my %structure = $tmp->%*;
 
-my %dmp3_db = Music::load_Dmp3($dmp3_file, \%structure, %opts);
+my %dmp3_db = load_Dmp3($dmp3_file, \%structure, %opts);
 
 for my $key (grep {exists $dmp3_db{$_}{cd}{removed}} grep {$_ ne 'fields'} keys %dmp3_db) {
     warn $key;

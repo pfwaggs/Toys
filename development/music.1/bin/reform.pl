@@ -1,8 +1,6 @@
 #!/usr/bin/env perl
 
-# vim: ai si sw=4 sts=4 et fdc=4 fmr=AAA,ZZZ fdm=marker
-
-# normal junk #AAA
+# normal junk #AzA
 use warnings;
 use strict;
 use v5.22;
@@ -21,7 +19,7 @@ use Path::Tiny;
 use JSON;
 use Data::Printer;
 
-#ZZZ
+#ZaZ
 
 my @data = path(shift)->lines_utf8({chomp=>1});
 my @fields = split /\t/, shift @data;

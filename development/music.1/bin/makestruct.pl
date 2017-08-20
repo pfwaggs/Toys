@@ -1,8 +1,6 @@
 #!/usr/bin/env perl
 
-# vim: ai si sw=4 sts=4 et fdc=4 fmr=AAA,ZZZ fdm=marker
-
-# normal junk #AAA
+# normal junk #AzA
 use warnings;
 use strict;
 use v5.22;
@@ -24,7 +22,7 @@ use Data::Printer;
 #}
 #use Menu;
 
-#ZZZ
+#ZaZ
 
 sub _struct_Maker ($patterns_a, $save=undef) {
     my %key;
