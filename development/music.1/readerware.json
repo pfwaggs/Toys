@@ -1,0 +1,16 @@
+{
+   "hash" : {
+      "cd" : [
+         "USER_NUMBER",
+         "ARTIST",
+         "TITLE"
+      ]
+   },
+   "TypeKey" : [
+       "TITLE",
+       "ARTIST"
+   ],
+   "key" : {
+      "cd" : "TITLE"
+   }
+}
