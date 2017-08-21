@@ -53,14 +53,20 @@ push @EXPORT_OK, qw(makeKeys); sub makeKeys ($data) { #AzA
     my %keys;
     my %data = $data->%*;
     for my $artist (keys %data) {
-	my $artistkey = join('', sort(split //, lc $artist =~ s/\W//gr));
+	my $artistKey = $artist =~ s/\&/and/gr;
+	$artistKey =~ s/\W//g;
+	$artistKey = join('', sort(split //, lc $artistKey));
 	for my $order (keys $data{$artist}->%*) {
 	    for my $album (keys $data{$artist}{$order}->%*) {
-		my $albumkey = join('', sort(split //, lc $album =~ s/\W//gr));
-		$keys{$artist}{$album} = join('/', $artistkey, $albumkey);
+		my $albumKey = $album =~ s/\&/and/gr;
+		$albumKey =~ s/\W//g;
+		$albumKey = join('', sort(split //, lc $albumKey));
+		$keys{$artist}{$album} = join('/', $artistKey, $albumKey);
 	    }
 	}
     }
     return wantarray ? %keys : \%keys;
 } #ZaZ
+
 1;
+
