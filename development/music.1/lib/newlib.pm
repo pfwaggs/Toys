@@ -3,7 +3,7 @@ package newlib;
 use strict;
 use warnings;
 use v5.22;
-use experimental qw(signatures postderef);
+use experimental qw(signatures postderef smartmatch);
 
 use Data::Printer;
 use Path::Tiny;
@@ -11,6 +11,31 @@ use YAML::Tiny qw(LoadFile DumpFile);
 
 use parent qw(Exporter);
 our @EXPORT_OK;
+
+sub _ParseDiscAlbum ($str) { #AzA
+    my ($disc) = $str =~ /(\W(?i:dis[ck])\s+\d+\W)/;
+    $str =~ s/\s+\Q$disc// if $disc;
+    return ($str, $disc);
+} #ZaZ
+
+# note that keys should contain ARTIST and ALBUM at a minimum
+push @EXPORT_OK, qw(getArtistAlbum); sub getArtistAlbum ($file, @keys) { #AzA
+    die "keys missing ARTIST" unless /ARTIST/ ~~ @keys;
+    die "keys missing ALBUM" unless /ALBUM/ ~~ @keys;
+    my %rtn;
+    my @lines = path($file)->lines_utf8({chomp=>1});
+    # first line contains field names.
+    my @fields = split /\t/, shift @lines;
+    for (@lines) {
+	my $t = {};
+	$t->@{@fields} = split /\t/, $_;
+	($t->{ALBUM}, my $disc) = _ParseDiscAlbum($t->{ALBUM});
+	my ($prime, @data) = $t->@{@keys};
+	push @data, $disc if $disc;
+	push $rtn{$prime}->@*, join("\t", @data);
+    }
+    return wantarray ? %rtn : \%rtn;
+} #ZaZ
 
 push @EXPORT_OK, qw(getDisk); sub getDisk ($file) { #AzA
     my @rtn;

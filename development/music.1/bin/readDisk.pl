@@ -11,11 +11,18 @@ use Data::Printer;
 
 use lib qw(./lib ../lib);
 
-use newlib qw(getDisk);
+use newlib qw(getArtistAlbum);
 
 #ZaZ
 
-my @disk = getDisk(shift);
+# make sure the listed keys includes ARTIST and ALBUM
+my $file = shift;
+my @keyList = $file =~ /dmp3/ ? qw/ARTIST ALBUM/ : qw/ARTIST USER_NUMBER ALBUM/;
 
-my @tst = @disk[0..10];
-p @tst;
+my %disk = getArtistAlbum($file, @keyList);
+
+for ((keys %disk)[0..10]) {
+    say $_;
+    say "\t$_" for $disk{$_}->@*;
+}
+
