@@ -21,8 +21,7 @@ my @keyList = $file =~ /dmp3/ ? qw/ARTIST ALBUM/ : qw/ARTIST USER_NUMBER ALBUM/;
 
 my %disk = getArtistAlbum($file, @keyList);
 
-for ((keys %disk)[0..10]) {
-    say $_;
-    say "\t$_" for $disk{$_}->@*;
-}
+my ($key) = keys %disk;
 
+say $key;
+p $disk{$key};

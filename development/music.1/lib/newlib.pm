@@ -15,7 +15,18 @@ our @EXPORT_OK;
 sub _ParseDiscAlbum ($str) { #AzA
     my ($disc) = $str =~ /(\W(?i:dis[ck])\s+\d+\W)/;
     $str =~ s/\s+\Q$disc// if $disc;
-    return ($str, $disc);
+    $disc = $disc ? $disc =~ s/[[:punct:]]//gr : 'disc 1';
+    return ($str, $disc//'disc 1');
+} #ZaZ
+
+sub _GenMatchKey ($str) { #AzA
+    my $rtn = $str =~ s/\&/and/gr;
+    $rtn = join('', sort(split //, lc $rtn =~ s/\W//gr));
+    return $rtn;
+} #ZaZ
+
+sub _ParseTrack ($str) { #AzA
+    return (split / - /, $str, 2);
 } #ZaZ
 
 # note that keys should contain ARTIST and ALBUM at a minimum
@@ -29,10 +40,13 @@ push @EXPORT_OK, qw(getArtistAlbum); sub getArtistAlbum ($file, @keys) { #AzA
     for (@lines) {
 	my $t = {};
 	$t->@{@fields} = split /\t/, $_;
-	($t->{ALBUM}, my $disc) = _ParseDiscAlbum($t->{ALBUM});
-	my ($prime, @data) = $t->@{@keys};
-	push @data, $disc if $disc;
-	push $rtn{$prime}->@*, join("\t", @data);
+	my ($artist, $album, $disc) = ($t->{ARTIST}, _ParseDiscAlbum($t->{ALBUM}));
+	$rtn{$artist}{match} = _GenMatchKey($artist) unless $artist ~~ %rtn;
+	$rtn{$artist}{$album}{match} = _GenMatchKey($album) unless $album ~~ $rtn{$artist};
+	if (/TRACK/ ~~ @fields) {
+	    my ($key, $val) = _ParseTrack($t->{TRACK});
+	    $rtn{$artist}{$album}{$disc}{$key} = $val;
+	}
     }
     return wantarray ? %rtn : \%rtn;
 } #ZaZ
