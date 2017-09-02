@@ -1,0 +1,44 @@
+
+declare -A LoadDirs
+declare -A Breve
+declare tli=~/.tli
+
+function _Tli () { #AzA
+    declare op=$1; shift
+    case $op in
+	s) for x in ${!Breve[@]}; do
+		echo $x ${Breve[$x]}
+	    done | sort | tee $tli
+	    ;;
+	l) exec 4<$tli
+	    while read -u 4 a b; do
+		Breve[$a]="$b"
+	    done
+	    exec 4<&-
+	    ;;
+	c) Breve=() ;;
+	a) Breve[$1]="$2" ;;
+    esac
+} #ZaZ
+
+function _FindDate () { #AzA
+    case ${1:-+} in
+	'+') date +%F ;;
+	+([0-9])) echo $1 | perl -nl -E 's/(\d{4})(\d+)/$1-$2/;s/(-\d+)(\d\d)$/$1-$2/; say' ;;
+    esac
+} #ZaZ
+
+function _FindPath () {
+    declare astr bstr
+    read astr bstr <<< ${1/!/ }
+    if [[ ${Breve[$astr]} ]]; then
+	declare d=$(_FindDate $bstr)
+	declare -a list
+	for x in "$(complete -d ${Breve[$astr]}/$d)"; do
+	    list+="$x"
+	done
+    fi
+    [[ ${#list[@]} ]] || list+=${Breve[$astr]}/$d.01
+    for x in "${list[@]}"; do echo "$x"; done
+}
+
