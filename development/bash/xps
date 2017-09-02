@@ -3,7 +3,7 @@ declare -A LoadDirs
 declare -A Breve
 declare tli=~/.tli
 
-function _Tli () { #AzA
+function _Breve () { #AzA
     declare op=$1; shift
     case $op in
 	s) for x in ${!Breve[@]}; do
@@ -20,25 +20,30 @@ function _Tli () { #AzA
 	a) Breve[$1]="$2" ;;
     esac
 } #ZaZ
+_Breve l
 
 function _FindDate () { #AzA
-    case ${1:-+} in
-	'+') date +%F ;;
-	+([0-9])) echo $1 | perl -nl -E 's/(\d{4})(\d+)/$1-$2/;s/(-\d+)(\d\d)$/$1-$2/; say' ;;
+    case ${#1} in
+	6) echo ${1:0:4}-${1:4} ;;
+	8) echo ${1:0:4}-${1:4:2}-${1:6} ;;
+	*) date +%F ;;
     esac
 } #ZaZ
 
 function _FindPath () {
-    declare astr bstr
-    read astr bstr <<< ${1/!/ }
-    if [[ ${Breve[$astr]} ]]; then
-	declare d=$(_FindDate $bstr)
+    declare a b x
+    [[ -v COMP_LINE ]] && shift || : # shift if called as completion
+    read a b <<< ${1/,/ }
+    if [[ ${Breve[$a]} ]]; then
+	declare d=$(_FindDate $b)
 	declare -a list
-	for x in "$(complete -d ${Breve[$astr]}/$d)"; do
+	for x in "$(compgen -d ${Breve[$a]}/$d)"; do
+	    [[ $x ]] || continue
 	    list+="$x"
 	done
     fi
-    [[ ${#list[@]} ]] || list+=${Breve[$astr]}/$d.01
+    [[ ${#list[@]} -gt 0 ]] || list+="${Breve[$a]}/$d.01"
     for x in "${list[@]}"; do echo "$x"; done
 }
 
+complete -C '_FindPath' stk
