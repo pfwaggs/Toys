@@ -19,8 +19,6 @@ function _Breve () { #AzA
     esac
 } #ZaZ
 
-_Breve l
-
 function _FindDate () { #AzA
     case ${#1} in
 	6) echo ${1:0:4}-${1:4} ;;
@@ -31,28 +29,32 @@ function _FindDate () { #AzA
 } #ZaZ
 
 function _FindPath () { #AzA
-    declare a b x
-    # if completion then want $2 else $1
-    x=${2:-$1}
-    read a b <<< ${x/,/ }
-#   echo a=$a >&2
-#   echo b=$b >&2
+    declare a b out
+    read a b <<< ${1/,/ }
     if [[ ${Breve[$a]} ]]; then
+	out=${Breve[$a]}
 	if [[ $b ]]; then
 	    declare d=$(_FindDate $b)
-#	    echo d=$d >&2
-	    declare -a list
-	    for x in "$(compgen -d ${Breve[$a]}/$d)"; do
-		[[ $x ]] || continue
-		list+=("$x")
-	    done
-	    printf -v x "%02d" $(( 1 + ${#list[@]} ))
-	    list+=("${Breve[$a]}/$d.$x")
-	    for x in "${list[@]}"; do echo "$x"; done
-	else
-	    [[ -d $a ]] && echo "$a" || echo "${Breve[$a]}"
+	    out+=/$d
 	fi
+	echo $out
     fi
 } #ZaZ
 
-complete -C '_FindPath' stk
+function _ParseArg () { #AzA
+    declare x
+    [[ -v COMP_LINE ]] && x=$2 || x=$1
+    if [[ $x =~ , ]]; then
+	x=$(_FindPath $x)
+    fi
+    declare -a list=($(compgen -d "$x"))
+    if [[ ${#list[@]} -eq 0 ]]; then
+	echo $x
+    else
+	for x in "${list[@]}"; do echo $x; done
+    fi
+} #ZaZ
+
+_Breve l
+
+complete -o filenames -C '_ParseArg' stk
