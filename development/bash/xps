@@ -1,11 +1,9 @@
 
-declare -A LoadDirs
 declare -A Breve
 declare tli=~/.tli
 
 function _Breve () { #AzA
-    declare op=$1; shift
-    case $op in
+    case $1 in
 	s) for x in ${!Breve[@]}; do
 		echo $x ${Breve[$x]}
 	    done | sort | tee $tli
@@ -17,33 +15,44 @@ function _Breve () { #AzA
 	    exec 4<&-
 	    ;;
 	c) Breve=() ;;
-	a) Breve[$1]="$2" ;;
+	a) Breve[$2]="$3" ;;
     esac
 } #ZaZ
+
 _Breve l
 
 function _FindDate () { #AzA
     case ${#1} in
 	6) echo ${1:0:4}-${1:4} ;;
 	8) echo ${1:0:4}-${1:4:2}-${1:6} ;;
-	*) date +%F ;;
+	0|1) date +%F ;;
+	*) echo $1 ;;
     esac
 } #ZaZ
 
-function _FindPath () {
+function _FindPath () { #AzA
     declare a b x
-    [[ -v COMP_LINE ]] && shift || : # shift if called as completion
-    read a b <<< ${1/,/ }
+    # if completion then want $2 else $1
+    x=${2:-$1}
+    read a b <<< ${x/,/ }
+#   echo a=$a >&2
+#   echo b=$b >&2
     if [[ ${Breve[$a]} ]]; then
-	declare d=$(_FindDate $b)
-	declare -a list
-	for x in "$(compgen -d ${Breve[$a]}/$d)"; do
-	    [[ $x ]] || continue
-	    list+="$x"
-	done
+	if [[ $b ]]; then
+	    declare d=$(_FindDate $b)
+#	    echo d=$d >&2
+	    declare -a list
+	    for x in "$(compgen -d ${Breve[$a]}/$d)"; do
+		[[ $x ]] || continue
+		list+=("$x")
+	    done
+	    printf -v x "%02d" $(( 1 + ${#list[@]} ))
+	    list+=("${Breve[$a]}/$d.$x")
+	    for x in "${list[@]}"; do echo "$x"; done
+	else
+	    [[ -d $a ]] && echo "$a" || echo "${Breve[$a]}"
+	fi
     fi
-    [[ ${#list[@]} -gt 0 ]] || list+="${Breve[$a]}/$d.01"
-    for x in "${list[@]}"; do echo "$x"; done
-}
+} #ZaZ
 
 complete -C '_FindPath' stk
